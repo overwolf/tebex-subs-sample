@@ -1,0 +1,10 @@
+{
+  "include": ["src/**/*"],
+  "extends": "./tsconfig.base.json",
+  "exclude": ["test", "**/*.spec.ts"],
+  "compilerOptions": {
+    "types": [
+      "@overwolf/types",
+    ],
+  }
+}
