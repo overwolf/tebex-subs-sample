@@ -12,12 +12,17 @@ import {
   SubscriptionStatusServiceBase,
   SubscriptionStatusToken,
 } from '../base/services/subscription-status-service';
+import {
+  DeeplinkServiceBase,
+  DeeplinkToken,
+} from '../base/services/deeplink-service';
 
 container.registerSingleton(StorePackagesToken, StorePackagesServiceBase);
 container.registerSingleton(
   SubscriptionStatusToken,
   SubscriptionStatusServiceBase,
 );
+container.registerSingleton(DeeplinkToken, DeeplinkServiceBase);
 
 // -----------------------------------------------------------------------------
 @injectable()
@@ -30,6 +35,8 @@ export class IndexController {
     private readonly storePackages: StorePackagesServiceBase,
     @inject(SubscriptionStatusToken)
     private readonly subscriptionStatus: SubscriptionStatusServiceBase,
+    @inject(DeeplinkToken)
+    private readonly deeplink: DeeplinkServiceBase,
   ) {
     this.init();
   }
@@ -40,6 +47,15 @@ export class IndexController {
   public async init(): Promise<void> {
     await this.refreshPackages();
     this.refreshStatus();
+    this.deeplink.init();
+
+    this.deeplink.on('success', (params) => {
+      // params.token
+      // do login from temp token here
+    });
+
+    // handle user cancelled flow
+    // this.deeplink.on('cancel', () => {});
 
     const getPackages = document.getElementById('getPackages');
     if (getPackages) {

@@ -29,6 +29,11 @@
       "reload_delay": 1000,
       "filter": "*.*"
     },
+    "url_protocol": {
+      "schemes": [
+        "tebex-subs-sample-purchased"
+      ]
+    },
     "externally_connectable": {
       "matches": [
       "https://*.tebex.io"
