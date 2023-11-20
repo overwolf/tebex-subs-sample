@@ -50,8 +50,12 @@ export class IndexController {
     this.deeplink.init();
 
     this.deeplink.on('success', (params) => {
-      // params.token
+      // console.log(params.token)
       // do login from temp token here
+
+      // if (userIsNowLoggedIn) {
+      this.refreshStatus();
+      // }
     });
 
     // handle user cancelled flow
