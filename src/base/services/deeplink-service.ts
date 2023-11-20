@@ -33,8 +33,10 @@ export class DeeplinkServiceBase extends EventEmitter<DeeplinkEvents> {
   }
 
   private handleDeeplink(deeplink: string): void {
-    const url = new URL(deeplink);
+    const url = new URL(decodeURIComponent(deeplink));
     const params = url.searchParams as TypedSearchParams<DeeplinkSearchParams>;
+
+    console.log(`Deeplink triggered: ${url}`);
     switch (params.get('result')) {
       case 'success':
         this.emit('success', {
@@ -45,6 +47,9 @@ export class DeeplinkServiceBase extends EventEmitter<DeeplinkEvents> {
         this.emit('cancel');
         break;
       default:
+        console.error(
+          `Deeplink triggered with incorrect parameters! ${params}`,
+        );
         break;
     }
   }
