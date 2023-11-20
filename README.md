@@ -1,4 +1,4 @@
-# events-sample-app
+# tebex-subs-sample
 
 A TypeScript-based, maintainable events sample app.
 
