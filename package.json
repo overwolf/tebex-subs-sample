@@ -10,7 +10,7 @@
   },
   "license": "ISC",
   "devDependencies": {
-    "@overwolf/types": "^3.23.1",
+    "@overwolf/types": "^3.24.0",
     "@types/events": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^5.44.0",
     "@typescript-eslint/parser": "^5.44.0",

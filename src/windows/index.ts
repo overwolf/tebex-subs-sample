@@ -5,8 +5,6 @@ import {
   StorePackagesServiceBase,
   StorePackagesToken,
 } from '../base/services/store-packages-service';
-import storeData from '../base/config/store-data';
-import endpoints from '../base/config/endpoints';
 import {
   SubscriptionStatus,
   SubscriptionStatusServiceBase,
@@ -16,6 +14,10 @@ import {
   DeeplinkServiceBase,
   DeeplinkToken,
 } from '../base/services/deeplink-service';
+import {
+  RenderListServiceBase,
+  RenderListToken,
+} from '../base/services/render-list-service';
 
 container.registerSingleton(StorePackagesToken, StorePackagesServiceBase);
 container.registerSingleton(
@@ -23,6 +25,7 @@ container.registerSingleton(
   SubscriptionStatusServiceBase,
 );
 container.registerSingleton(DeeplinkToken, DeeplinkServiceBase);
+container.registerSingleton(RenderListToken, RenderListServiceBase);
 
 // -----------------------------------------------------------------------------
 @injectable()
@@ -45,17 +48,23 @@ export class IndexController {
    * Initializes this app
    */
   public async init(): Promise<void> {
-    await this.refreshPackages();
-    this.refreshStatus();
+    // Setup Packages list
+    this.renderPackages(await this.refreshPackages());
+
+    // Setup Status list
+    this.renderStatus(await this.refreshStatus());
+
     this.deeplink.init();
 
     this.deeplink.on('success', (params) => {
-      // console.log(params.token)
-      // do login from temp token here
-
-      // if (userIsNowLoggedIn) {
-      this.refreshStatus();
-      // }
+      overwolf.profile.performOverwolfSessionLogin(params.token, (result) => {
+        console.log('Login attempt from temporary token:', result);
+        overwolf.profile.getCurrentUser((result) => {
+          if (result.username) {
+            this.refreshStatus();
+          }
+        });
+      });
     });
 
     // handle user cancelled flow
@@ -63,76 +72,69 @@ export class IndexController {
 
     const getPackages = document.getElementById('getPackages');
     if (getPackages) {
-      getPackages.onclick = () => this.refreshPackages();
+      getPackages.onclick = async () =>
+        this.renderPackages(await this.refreshPackages());
+
       getPackages.toggleAttribute('disabled', false);
     }
 
     const getStatus = document.getElementById('getStatus');
     if (getStatus) {
-      getStatus.onclick = () => this.refreshStatus();
+      getStatus.onclick = async () =>
+        this.renderStatus(await this.refreshStatus());
       getStatus.toggleAttribute('disabled', false);
     }
+  }
+
+  private renderPackages(packages: StorePackage[]) {
+    this.storePackages.Rerender(packages);
+    this.packages = packages;
+  }
+
+  private renderStatus(status: SubscriptionStatus[]) {
+    if (status.filter((item) => !this.status.includes(item)).length) {
+      this.subscriptionStatus.Rerender(status, this.packages);
+      this.status = status;
+      return true;
+    }
+
+    return false;
   }
 
   private async refreshPackages() {
     this.packages = await this.storePackages.getPackages();
     console.log(this.packages);
-    document.getElementById('packages')?.replaceChildren(
-      ...this.packages.map((pack) => {
-        const container = document.createElement('li');
-        container.classList.add('vertical', 'item');
-
-        container.appendChild(this.createText(pack.name));
-        container.appendChild(this.createText(pack.total_price.toString()));
-
-        const select = document.createElement('button');
-        select.textContent = 'checkout';
-        select.addEventListener('click', () => this.checkoutPackage(pack.id));
-        container.appendChild(select);
-
-        return container;
-      }),
-    );
+    return this.packages;
   }
 
-  private async refreshStatus() {
+  private async refreshStatus(): Promise<SubscriptionStatus[]> {
+    let resolveStatus: (status: SubscriptionStatus[]) => void;
+    const promise = new Promise<SubscriptionStatus[]>((resolve) => {
+      resolveStatus = resolve;
+    });
     overwolf.profile.generateUserSessionToken(async (result) => {
       if (!result.success)
-        return alert('You must be logged in to utilize subscriptions!');
+        return alert(
+          'You must be logged in to check your subscription status!',
+        );
 
-      this.status = await this.subscriptionStatus.getStatus(result.token);
+      const status = await this.subscriptionStatus.getStatus(result.token);
 
-      console.log(this.status);
-      document.getElementById('plans')?.replaceChildren(
-        ...this.status.map((status) => {
-          const container = document.createElement('li');
-          container.classList.add('horizontal', 'item');
+      console.log(status);
 
-          container.appendChild(
-            this.createText(
-              `Active plan: ${
-                this.packages.find((pack) => pack.id === status.packageId)
-                  ?.name ?? 'Unknown plan'
-              }`,
-            ),
-          );
-
-          return container;
-        }),
-      );
+      resolveStatus(status);
     });
+    return promise;
   }
 
-  private createText(text: string) {
-    const element = document.createElement('div');
-    element.textContent = text;
-    return element;
-  }
+  private readonly _retryDelay = 60000;
+  private readonly _retryCount = 5;
 
-  private checkoutPackage(packageId: number) {
-    overwolf.utils.openUrlInDefaultBrowser(
-      `${endpoints.checkout}/${storeData.storePublicToken}/${packageId}`,
-    );
+  private quickRefreshStatus(retries: number = this._retryCount): void {
+    setTimeout(async () => {
+      const changed = this.renderStatus(await this.refreshStatus());
+      if (!changed && retries) this.quickRefreshStatus(retries - 1);
+    }, this._retryDelay);
   }
 }
 

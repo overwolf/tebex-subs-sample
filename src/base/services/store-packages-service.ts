@@ -1,5 +1,8 @@
+import { injectable } from 'tsyringe';
 import endpoints from '../config/endpoints';
 import storeData from '../config/store-data';
+import { RenderListServiceBase } from './render-list-service';
+import { CheckoutServiceBase } from './checkout-service';
 
 export type StorePackage = {
   base_price: number;
@@ -21,7 +24,10 @@ export type StorePackage = {
 
 export const StorePackagesToken = 'StorePackagesBase';
 
+@injectable()
 export class StorePackagesServiceBase {
+  private readonly listView;
+
   public async getPackages(): Promise<StorePackage[]> {
     const result = await fetch(
       `${endpoints.packages}/${storeData.storePublicToken}`,
@@ -29,4 +35,29 @@ export class StorePackagesServiceBase {
 
     return result.json();
   }
+
+  public constructor(
+    renderListService: RenderListServiceBase,
+    checkoutService: CheckoutServiceBase,
+  ) {
+    this.listView = renderListService.CreateRenderer<StorePackage>((pack) => {
+      const container = document.createElement('li');
+      container.classList.add('vertical', 'item');
+
+      container.appendChild(renderListService.CreateText(pack.name));
+      container.appendChild(
+        renderListService.CreateText(pack.total_price.toString()),
+      );
+
+      const select = document.createElement('button');
+      select.textContent = 'checkout';
+      select.addEventListener('click', () => checkoutService.Checkout(pack.id));
+      container.appendChild(select);
+
+      return container;
+    }, document.getElementById('packages'));
+  }
+
+  public Rerender = (packages: StorePackage[]) =>
+    this.listView.RefreshList(packages);
 }
