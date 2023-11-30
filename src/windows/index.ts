@@ -32,6 +32,7 @@ container.registerSingleton(RenderListToken, RenderListServiceBase);
 export class IndexController {
   private packages: StorePackage[] = [];
   private status: SubscriptionStatus[] = [];
+  private currentUser = '';
 
   public constructor(
     @inject(StorePackagesToken)
@@ -41,34 +42,38 @@ export class IndexController {
     @inject(DeeplinkToken)
     private readonly deeplink: DeeplinkServiceBase,
   ) {
-    this.init();
+    overwolf.profile.getCurrentUser((result) => {
+      this.currentUser = result.username ?? '';
+      this.init();
+    });
   }
 
   /**
    * Initializes this app
    */
-  public async init(): Promise<void> {
+  private async init(): Promise<void> {
     // Setup Packages list
     this.renderPackages(await this.refreshPackages());
 
-    // Setup Status list
-    this.renderStatus(await this.refreshStatus());
-
-    this.deeplink.init();
-
+    // Setup success deeplink handling
     this.deeplink.on('success', (params) => {
-      overwolf.profile.performOverwolfSessionLogin(params.token, (result) => {
-        console.log('Login attempt from temporary token:', result);
-        overwolf.profile.getCurrentUser((result) => {
-          if (result.username) {
-            this.refreshStatus();
+      overwolf.profile.performOverwolfSessionLogin(
+        params.token,
+        async (result) => {
+          console.log('Login attempt from temporary token:', result);
+          if (result.success) {
+            this.renderStatus(await this.refreshStatus());
           }
-        });
-      });
+        },
+      );
     });
 
     // handle user cancelled flow
     // this.deeplink.on('cancel', () => {});
+
+    this.deeplink.init();
+
+    // Setup HTML elements
 
     const getPackages = document.getElementById('getPackages');
     if (getPackages) {
@@ -82,8 +87,30 @@ export class IndexController {
     if (getStatus) {
       getStatus.onclick = async () =>
         this.renderStatus(await this.refreshStatus());
-      getStatus.toggleAttribute('disabled', false);
     }
+
+    const currentlyLoggedIn = document.getElementById('loggedIn');
+
+    // Handle user change
+    const onUserChanged = async (newUsername?: string) => {
+      this.currentUser = newUsername ?? '';
+      if (currentlyLoggedIn)
+        currentlyLoggedIn.textContent = this.currentUser
+          ? this.currentUser
+          : 'False';
+      getStatus?.toggleAttribute('disabled', !this.currentUser);
+      this.renderStatus(this.currentUser ? await this.refreshStatus() : []);
+    };
+
+    // If the user login state changes, we update the active subscriptions
+    overwolf.profile.onLoginStateChanged.addListener(async (loginState) => {
+      onUserChanged(loginState.username);
+    });
+
+    // Get the current user
+    overwolf.profile.getCurrentUser(
+      (result) => result.success && onUserChanged(result.username),
+    );
   }
 
   private renderPackages(packages: StorePackage[]) {
@@ -92,9 +119,12 @@ export class IndexController {
   }
 
   private renderStatus(status: SubscriptionStatus[]) {
-    if (status.filter((item) => !this.status.includes(item)).length) {
-      this.subscriptionStatus.Rerender(status, this.packages);
+    if (
+      status.filter((item) => !this.status.includes(item)).length ||
+      this.status.filter((item) => !status.includes(item)).length
+    ) {
       this.status = status;
+      this.subscriptionStatus.Rerender(this.status, this.packages);
       return true;
     }
 
@@ -133,7 +163,8 @@ export class IndexController {
   private quickRefreshStatus(retries: number = this._retryCount): void {
     setTimeout(async () => {
       const changed = this.renderStatus(await this.refreshStatus());
-      if (!changed && retries) this.quickRefreshStatus(retries - 1);
+      if (this.currentUser && !changed && retries)
+        this.quickRefreshStatus(retries - 1);
     }, this._retryDelay);
   }
 }
