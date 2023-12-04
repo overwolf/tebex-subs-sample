@@ -62,7 +62,7 @@ export class IndexController {
         async (result) => {
           console.log('Login attempt from temporary token:', result);
           if (result.success) {
-            this.renderStatus(await this.refreshStatus());
+            this.quickRefreshStatus();
           }
         },
       );
@@ -119,16 +119,20 @@ export class IndexController {
   }
 
   private renderStatus(status: SubscriptionStatus[]) {
-    if (
-      status.filter((item) => !this.status.includes(item)).length ||
-      this.status.filter((item) => !status.includes(item)).length
-    ) {
+    if (!this.sameStatus(this.status, status)) {
       this.status = status;
       this.subscriptionStatus.Rerender(this.status, this.packages);
       return true;
     }
 
     return false;
+  }
+
+  private sameStatus(arr1: SubscriptionStatus[], arr2: SubscriptionStatus[]) {
+    return (
+      !arr1.filter((item) => !arr2.includes(item)).length &&
+      !arr2.filter((item) => !arr1.includes(item)).length
+    );
   }
 
   private async refreshPackages() {
@@ -160,11 +164,17 @@ export class IndexController {
   private readonly _retryDelay = 60000;
   private readonly _retryCount = 5;
 
-  private quickRefreshStatus(retries: number = this._retryCount): void {
+  private quickRefreshStatus(
+    oldStatus: SubscriptionStatus[],
+    retries: number = this._retryCount,
+  ): void {
     setTimeout(async () => {
-      const changed = this.renderStatus(await this.refreshStatus());
-      if (this.currentUser && !changed && retries)
-        this.quickRefreshStatus(retries - 1);
+      // This is to make sure that nothing else potentially changed the status
+      if (this.sameStatus(oldStatus, this.status)) {
+        const changed = this.renderStatus(await this.refreshStatus());
+        if (this.currentUser && !changed && retries)
+          this.quickRefreshStatus(oldStatus, retries - 1);
+      }
     }, this._retryDelay);
   }
 }
