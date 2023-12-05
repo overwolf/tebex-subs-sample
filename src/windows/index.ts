@@ -62,7 +62,7 @@ export class IndexController {
         async (result) => {
           console.log('Login attempt from temporary token:', result);
           if (result.success) {
-            this.quickRefreshStatus();
+            this.quickRefreshStatus(this.status);
           }
         },
       );
