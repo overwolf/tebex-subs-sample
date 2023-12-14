@@ -1,5 +1,5 @@
 const storeData = {
-  storePublicToken: 't8tr-f9fe479319b06355d1686df4741f31d1bb8187c5',
-};
+  storePublicToken: 'te6h-79c26e497f2450d8e0677f684abdc4e4339c5df6',
+} as const;
 
 export default storeData;

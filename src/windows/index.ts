@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import { container, inject, injectable } from 'tsyringe';
 import {
-  StorePackage,
   StorePackagesServiceBase,
   StorePackagesToken,
 } from '../base/services/store-packages-service';
@@ -15,25 +14,31 @@ import {
   DeeplinkToken,
 } from '../base/services/deeplink-service';
 import {
+  AccountServiceBase,
+  AccountToken,
+} from '../base/services/account-service';
+import {
+  CheckoutServiceBase,
+  CheckoutToken,
+} from '../base/services/checkout-service';
+import {
   RenderListServiceBase,
   RenderListToken,
 } from '../base/services/render-list-service';
 
+container.registerSingleton(CheckoutToken, CheckoutServiceBase);
 container.registerSingleton(StorePackagesToken, StorePackagesServiceBase);
 container.registerSingleton(
   SubscriptionStatusToken,
   SubscriptionStatusServiceBase,
 );
+container.register(RenderListToken, RenderListServiceBase);
 container.registerSingleton(DeeplinkToken, DeeplinkServiceBase);
-container.registerSingleton(RenderListToken, RenderListServiceBase);
+container.registerSingleton(AccountToken, AccountServiceBase);
 
 // -----------------------------------------------------------------------------
 @injectable()
 export class IndexController {
-  private packages: StorePackage[] = [];
-  private status: SubscriptionStatus[] = [];
-  private currentUser = '';
-
   public constructor(
     @inject(StorePackagesToken)
     private readonly storePackages: StorePackagesServiceBase,
@@ -41,11 +46,12 @@ export class IndexController {
     private readonly subscriptionStatus: SubscriptionStatusServiceBase,
     @inject(DeeplinkToken)
     private readonly deeplink: DeeplinkServiceBase,
+    @inject(AccountToken)
+    private readonly account: AccountServiceBase,
+    @inject(CheckoutToken)
+    private readonly checkout: CheckoutServiceBase,
   ) {
-    overwolf.profile.getCurrentUser((result) => {
-      this.currentUser = result.username ?? '';
-      this.init();
-    });
+    this.init();
   }
 
   /**
@@ -53,23 +59,17 @@ export class IndexController {
    */
   private async init(): Promise<void> {
     // Setup Packages list
-    this.renderPackages(await this.refreshPackages());
+    this.storePackages.RefreshPackages();
 
     // Setup success deeplink handling
-    this.deeplink.on('success', (params) => {
-      overwolf.profile.performOverwolfSessionLogin(
-        params.token,
-        async (result) => {
-          console.log('Login attempt from temporary token:', result);
-          if (result.success) {
-            this.quickRefreshStatus(this.status);
-          }
-        },
-      );
+    this.deeplink.on('success', () => {
+      console.log('Deeplink received for subscription flow success!');
     });
 
     // handle user cancelled flow
-    // this.deeplink.on('cancel', () => {});
+    this.deeplink.on('cancel', () => {
+      console.log('Deeplink received for subscription flow cancellation!');
+    });
 
     this.deeplink.init();
 
@@ -77,104 +77,42 @@ export class IndexController {
 
     const getPackages = document.getElementById('getPackages');
     if (getPackages) {
-      getPackages.onclick = async () =>
-        this.renderPackages(await this.refreshPackages());
+      getPackages.onclick = async () => this.storePackages.RefreshPackages();
 
       getPackages.toggleAttribute('disabled', false);
     }
 
     const getStatus = document.getElementById('getStatus');
     if (getStatus) {
-      getStatus.onclick = async () =>
-        this.renderStatus(await this.refreshStatus());
+      getStatus.onclick = async () => this.subscriptionStatus.RefreshStatus();
     }
 
     const currentlyLoggedIn = document.getElementById('loggedIn');
 
     // Handle user change
-    const onUserChanged = async (newUsername?: string) => {
-      this.currentUser = newUsername ?? '';
+    this.account.on('updated', (newUsername) => {
       if (currentlyLoggedIn)
-        currentlyLoggedIn.textContent = this.currentUser
-          ? this.currentUser
-          : 'False';
-      getStatus?.toggleAttribute('disabled', !this.currentUser);
-      this.renderStatus(this.currentUser ? await this.refreshStatus() : []);
-    };
-
-    // If the user login state changes, we update the active subscriptions
-    overwolf.profile.onLoginStateChanged.addListener(async (loginState) => {
-      onUserChanged(loginState.username);
+        currentlyLoggedIn.textContent = newUsername || 'False';
+      getStatus?.toggleAttribute('disabled', !newUsername);
+      this.subscriptionStatus.RefreshStatus();
     });
 
-    // Get the current user
-    overwolf.profile.getCurrentUser(
-      (result) => result.success && onUserChanged(result.username),
-    );
+    this.account.init();
+
+    this.checkout.init(this.subscriptionStatus);
   }
 
-  private renderPackages(packages: StorePackage[]) {
-    this.storePackages.Rerender(packages);
-    this.packages = packages;
-  }
-
-  private renderStatus(status: SubscriptionStatus[]) {
-    if (!this.sameStatus(this.status, status)) {
-      this.status = status;
-      this.subscriptionStatus.Rerender(this.status, this.packages);
-      return true;
-    }
-
-    return false;
-  }
-
-  private sameStatus(arr1: SubscriptionStatus[], arr2: SubscriptionStatus[]) {
-    return (
-      !arr1.filter((item) => !arr2.includes(item)).length &&
-      !arr2.filter((item) => !arr1.includes(item)).length
-    );
-  }
-
-  private async refreshPackages() {
-    this.packages = await this.storePackages.getPackages();
-    console.log(this.packages);
-    return this.packages;
-  }
-
-  private async refreshStatus(): Promise<SubscriptionStatus[]> {
-    let resolveStatus: (status: SubscriptionStatus[]) => void;
-    const promise = new Promise<SubscriptionStatus[]>((resolve) => {
-      resolveStatus = resolve;
-    });
-    overwolf.profile.generateUserSessionToken(async (result) => {
-      if (!result.success)
-        return alert(
-          'You must be logged in to check your subscription status!',
-        );
-
-      const status = await this.subscriptionStatus.getStatus(result.token);
-
-      console.log(status);
-
-      resolveStatus(status);
-    });
-    return promise;
-  }
-
-  private readonly _retryDelay = 60000;
-  private readonly _retryCount = 5;
+  private readonly _retryDelay = 30000;
+  private readonly _retryCount = 10;
 
   private quickRefreshStatus(
     oldStatus: SubscriptionStatus[],
     retries: number = this._retryCount,
   ): void {
     setTimeout(async () => {
-      // This is to make sure that nothing else potentially changed the status
-      if (this.sameStatus(oldStatus, this.status)) {
-        const changed = this.renderStatus(await this.refreshStatus());
-        if (this.currentUser && !changed && retries)
-          this.quickRefreshStatus(oldStatus, retries - 1);
-      }
+      console.log('Re-checking subscription status');
+      const finished = await this.subscriptionStatus.RefreshStatus();
+      if (!finished && retries) this.quickRefreshStatus(oldStatus, retries - 1);
     }, this._retryDelay);
   }
 }

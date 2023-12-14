@@ -24,6 +24,7 @@
         "resizable": true
       }
     },
+    "force_browser": "user",
     "developer": {
       "enable_auto_refresh": true,
       "reload_delay": 1000,

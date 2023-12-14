@@ -4,7 +4,6 @@ export type DeeplinkSearchParams = DeeplinkSuccess | DeeplinkCancel;
 
 type DeeplinkSuccess = {
   result: 'success';
-  token: string;
 };
 
 type DeeplinkCancel = {
@@ -21,7 +20,7 @@ type TypedSearchParams<Mapping extends { [key: string]: string }> = Omit<
 };
 
 export type DeeplinkEvents = {
-  cancel: [];
+  cancel: [Omit<DeeplinkCancel, 'result'>];
   success: [Omit<DeeplinkSuccess, 'result'>];
 };
 
@@ -39,12 +38,10 @@ export class DeeplinkServiceBase extends EventEmitter<DeeplinkEvents> {
     console.log(`Deeplink triggered: ${url}`);
     switch (params.get('result')) {
       case 'success':
-        this.emit('success', {
-          token: (params as TypedSearchParams<DeeplinkSuccess>).get('token'),
-        });
+        this.emit('success', {});
         break;
       case 'cancel':
-        this.emit('cancel');
+        this.emit('cancel', {});
         break;
       default:
         console.error(

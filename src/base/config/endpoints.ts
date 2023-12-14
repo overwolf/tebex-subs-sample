@@ -5,6 +5,6 @@ const endpoints = {
   packages: `${hostname}/packages`,
   checkout: `${hostname}/checkout`,
   subscriptions: `${hostname}/subscriptions`,
-};
+} as const;
 
 export default endpoints;

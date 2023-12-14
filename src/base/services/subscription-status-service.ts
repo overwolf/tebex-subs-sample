@@ -1,8 +1,15 @@
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import endpoints from '../config/endpoints';
-import storeData from '../config/store-data';
-import { RenderListServiceBase } from './render-list-service';
-import { StorePackage } from './store-packages-service';
+import { RenderListServiceBase, RenderListToken } from './render-list-service';
+import {
+  StorePackage,
+  StorePackagesServiceBase,
+  StorePackagesToken,
+} from './store-packages-service';
+import { EventEmitter } from 'events';
+import ArraysIntersect from '../../utils/arrays-intersect';
+import OverwolfCheckoutRequest from '../../utils/overwolf-checkout-request';
+import { AccountServiceBase, AccountToken } from './account-service';
 
 export type SubscriptionStatus = {
   userId: string;
@@ -12,23 +19,75 @@ export type SubscriptionStatus = {
 
 export const SubscriptionStatusToken = 'SubscriptionStatusBase';
 
+export type SubscriptionsStatusEvents = {
+  updated: [SubscriptionStatus[]];
+};
+
 @injectable()
-export class SubscriptionStatusServiceBase {
+// eslint-disable-next-line prettier/prettier
+export class SubscriptionStatusServiceBase extends EventEmitter<
+  SubscriptionsStatusEvents
+> {
   private readonly listView;
+  private currentStatus: SubscriptionStatus[] = [];
 
-  public async getStatus(token: string): Promise<SubscriptionStatus[]> {
-    const headers = new Headers();
-    headers.append('Authorization', `Bearer ${token}`);
-
-    const result = await fetch(
-      `${endpoints.subscriptions}/${storeData.storePublicToken}`,
-      { headers },
-    );
-
-    return result.json();
+  public GetCurrentStatus() {
+    return this.currentStatus;
   }
 
-  public constructor(renderListService: RenderListServiceBase) {
+  public async RefreshStatus(): Promise<boolean> {
+    return this.accountService.GenerateToken().then(
+      async (token: string) => {
+        const headers = new Headers();
+        headers.append('Authorization', `Bearer ${token}`);
+
+        return fetch(OverwolfCheckoutRequest(endpoints.subscriptions), {
+          headers,
+        }).then((result) => {
+          if (result.status !== 200)
+            throw new Error(
+              `Request failed! ${result.status} ${result.statusText}`,
+            );
+          return result.json().then(
+            (newStatus) => {
+              return this.HandleNewStatus(newStatus);
+            },
+            (reason) => {
+              throw new Error(`Request failed! ${reason}`);
+            },
+          );
+        });
+      },
+      (reason: string) => {
+        console.log(`Unable to generate token: ${reason}`);
+        return this.HandleNewStatus([]);
+      },
+    );
+  }
+
+  private HandleNewStatus(newStatus: SubscriptionStatus[]) {
+    const changed = !ArraysIntersect(newStatus, this.currentStatus);
+
+    if (changed) {
+      this.currentStatus = newStatus;
+      console.log('Subscription Status!', this.currentStatus);
+      this.emit('updated', this.currentStatus);
+
+      this.Rerender();
+    }
+
+    return changed;
+  }
+
+  public constructor(
+    @inject(RenderListToken)
+    renderListService: RenderListServiceBase,
+    @inject(StorePackagesToken)
+    private readonly storePackagesService: StorePackagesServiceBase,
+    @inject(AccountToken)
+    private readonly accountService: AccountServiceBase,
+  ) {
+    super();
     this.listView = renderListService.CreateRenderer<
       SubscriptionStatus,
       StorePackage[]
@@ -49,6 +108,9 @@ export class SubscriptionStatusServiceBase {
     }, document.getElementById('plans'));
   }
 
-  public Rerender = (status: SubscriptionStatus[], packages: StorePackage[]) =>
-    this.listView.RefreshList(status, packages);
+  public Rerender = () =>
+    this.listView.RefreshList(
+      this.currentStatus,
+      this.storePackagesService.GetCurrentPackages(),
+    );
 }
