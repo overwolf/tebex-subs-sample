@@ -116,10 +116,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@overwolf/types@^3.24.0":
-  version "3.24.0"
-  resolved "https://registry.yarnpkg.com/@overwolf/types/-/types-3.24.0.tgz#d2885620d141827384cd7a6ed0dc2b43e08d2317"
-  integrity sha512-laer8EFPFny0RoSVYVyhNzrPa9nHOsNF2YC/ZrNDK+eNtIk+Dy4YrvYCQq9fZ2PDqL+Clc2M04TKF5WWNWYzXA==
+"@overwolf/types@^3.24.3":
+  version "3.24.3"
+  resolved "https://registry.yarnpkg.com/@overwolf/types/-/types-3.24.3.tgz#6e400c85969eba698785a09b6b562878498323a2"
+  integrity sha512-I7K97nDFHI56qxx9cVMlU+oUMwRKqK9Ld0IJ8ughbOsthzPoeSSWKpEOhPyQWFYv77Qi/KRXaw4Wxr8X+QxE3Q==
 
 "@types/eslint-scope@^3.7.3":
   version "3.7.4"
