@@ -59,7 +59,7 @@ export class IndexController {
    */
   private async init(): Promise<void> {
     // Setup Packages list
-    this.storePackages.RefreshPackages();
+    await this.storePackages.RefreshPackages();
 
     // Setup success deeplink handling
     this.deeplink.on('success', () => {
