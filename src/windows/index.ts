@@ -39,6 +39,18 @@ container.registerSingleton(AccountToken, AccountServiceBase);
 // -----------------------------------------------------------------------------
 @injectable()
 export class IndexController {
+  private minOverwolfVersion = '0.240.0.5';
+
+  private ensureClientVersion = () => {
+    const currentVersion = overwolf.version.split('.');
+    const minVersion = this.minOverwolfVersion.split('.');
+
+    // Basically - ensure none of the fragments of the version is below the min
+    return !minVersion.some(
+      (fragment, index) => Number(fragment) > Number(currentVersion[index]),
+    );
+  };
+
   public constructor(
     @inject(StorePackagesToken)
     private readonly storePackages: StorePackagesServiceBase,
@@ -51,7 +63,12 @@ export class IndexController {
     @inject(CheckoutToken)
     private readonly checkout: CheckoutServiceBase,
   ) {
-    this.init();
+    if (!this.ensureClientVersion())
+      alert(
+        // eslint-disable-next-line max-len
+        'Overwolf client does not meet minimum version (this can only happen when loading as unpacked',
+      );
+    else this.init();
   }
 
   /**
