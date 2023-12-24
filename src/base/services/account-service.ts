@@ -16,7 +16,10 @@ export class AccountServiceBase extends EventEmitter<AccountServiceEvents> {
   public init(): void {
     // If the user login state changes, we update the active subscriptions
     overwolf.profile.onLoginStateChanged.addListener(() => {
-      this.UpdateCurrentUser();
+      // There is a race condition here, it's a known bug, this is a TEMP fix
+      setTimeout(() => {
+        this.UpdateCurrentUser();
+      }, 5000);
     });
 
     // Updates the current user
