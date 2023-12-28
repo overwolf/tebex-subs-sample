@@ -1,4 +1,4 @@
-Events Sample App
+Tebex Subscriptions Sample App
 
 Unless stated otherwise, everything in this project is licensed under the MIT license detailed below
 
