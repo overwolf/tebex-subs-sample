@@ -46,8 +46,11 @@ export class IndexController {
     const minVersion = this.minOverwolfVersion.split('.');
 
     // Basically - ensure none of the fragments of the version is below the min
-    return !minVersion.some(
-      (fragment, index) => Number(fragment) > Number(currentVersion[index]),
+    return (
+      overwolf.version === this.minOverwolfVersion ||
+      currentVersion.some(
+        (fragment, index) => Number(fragment) > Number(minVersion[index]),
+      )
     );
   };
 
