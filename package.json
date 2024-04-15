@@ -42,6 +42,7 @@
   "dependencies": {
     "events": "^3.3.0",
     "reflect-metadata": "^0.1.13",
+    "semver": "^7.6.0",
     "tsyringe": "^4.8.0",
     "typescript-logging": "^2.0.2",
     "typescript-logging-category-style": "^2.0.2"

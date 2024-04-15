@@ -25,6 +25,7 @@ import {
   RenderListServiceBase,
   RenderListToken,
 } from '../base/services/render-list-service';
+import { SemVer } from 'semver';
 
 container.registerSingleton(CheckoutToken, CheckoutServiceBase);
 container.registerSingleton(StorePackagesToken, StorePackagesServiceBase);
@@ -42,16 +43,8 @@ export class IndexController {
   private minOverwolfVersion = '0.240.0.5';
 
   private ensureClientVersion = () => {
-    const currentVersion = overwolf.version.split('.');
-    const minVersion = this.minOverwolfVersion.split('.');
-
-    // Basically - ensure none of the fragments of the version is below the min
-    return (
-      overwolf.version === this.minOverwolfVersion ||
-      currentVersion.some(
-        (fragment, index) => Number(fragment) > Number(minVersion[index]),
-      )
-    );
+    const currentVer = new SemVer(overwolf.version.slice(2));
+    return currentVer.compare(this.minOverwolfVersion.slice(2)) === 1;
   };
 
   public constructor(
@@ -69,7 +62,7 @@ export class IndexController {
     if (!this.ensureClientVersion())
       alert(
         // eslint-disable-next-line max-len
-        'Overwolf client does not meet minimum version (this can only happen when loading as unpacked',
+        'Overwolf client does not meet minimum version (this can only happen when loading as unpacked)',
       );
     else this.init();
   }

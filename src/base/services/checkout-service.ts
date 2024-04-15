@@ -40,6 +40,7 @@ export class CheckoutServiceBase {
         {
           userId: this.accountService.GetCurrentUser(),
           discordId: packageParams.extra?.discordId?.toString(),
+          // autoRedirect: 'false',
         },
         `/${packageParams.packageId}`,
       ),
