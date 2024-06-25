@@ -42,18 +42,24 @@ export class AccountServiceBase extends EventEmitter<AccountServiceEvents> {
     let resolveToken: (token: string) => void;
     let failToken: (error: string) => void;
 
-    const promise = new Promise<string>((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       resolveToken = resolve;
       failToken = reject;
-    });
 
-    if (this.currentUser) {
+      if (!this.currentUser) {
+        failToken(`No current user available`);
+        return;
+      }
+
       overwolf.profile.generateUserSessionToken((result) => {
-        if (result.success) resolveToken(result.token);
-        else failToken(`Unable to generate token! ${result.error}`);
-      });
-    }
+        console.log(`Token Generated: ${result.token}`);
 
-    return promise;
+        if (result.token) {
+          resolveToken(result.token);
+        } else {
+          failToken(`Unable to generate token! ${result.error}`);
+        }
+      });
+    });
   }
 }
