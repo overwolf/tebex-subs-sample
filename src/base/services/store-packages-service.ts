@@ -4,7 +4,8 @@ import { RenderListServiceBase, RenderListToken } from './render-list-service';
 import { CheckoutServiceBase, CheckoutToken } from './checkout-service';
 import { EventEmitter } from 'events';
 import ArraysIntersect from '../../utils/arrays-intersect';
-import OverwolfCheckoutRequest from '../../utils/overwolf-checkout-request';
+import OverwolfCategoriesRequest from '../../utils/overwolf-categories-request';
+import { AccountServiceBase, AccountToken } from './account-service';
 
 export type StorePackage = {
   base_price: number;
@@ -32,9 +33,7 @@ export type StorePackagesEvents = {
 
 @injectable()
 // eslint-disable-next-line prettier/prettier
-export class StorePackagesServiceBase extends EventEmitter<
-  StorePackagesEvents
-> {
+export class StorePackagesServiceBase extends EventEmitter<StorePackagesEvents> {
   private readonly listView;
   private currentPackages: StorePackage[] = [];
 
@@ -43,30 +42,55 @@ export class StorePackagesServiceBase extends EventEmitter<
   }
 
   public async RefreshPackages(): Promise<boolean> {
-    return fetch(OverwolfCheckoutRequest(endpoints.packages)).then((result) => {
-      if (result.status !== 200)
-        throw new Error(
-          `Request failed! ${result.status} ${result.statusText}`,
-        );
-      return result.json().then(
-        (newPackages) => {
-          const changed = !ArraysIntersect(newPackages, this.currentPackages);
+    return this.accountService.GenerateToken().then(
+      async (token: string) => {
+        const headers = new Headers();
+        headers.append('Authorization', `Bearer ${token}`);
+        const requestUrl = OverwolfCategoriesRequest(endpoints.subscriptions);
 
-          if (changed) {
-            this.currentPackages = newPackages;
-            console.log('Packages updated!', this.currentPackages);
-            this.emit('updated', this.currentPackages);
-
-            this.Rerender();
+        return fetch(requestUrl, {
+          headers,
+        }).then((result) => {
+          if (result.status !== 200) {
+            console.error(
+              `Request failed! ${result.status} ${result.statusText}`,
+            );
+            throw new Error(
+              `Request failed! ${result.status} ${result.statusText}`,
+            );
           }
 
-          return changed;
-        },
-        (reason) => {
-          throw new Error(`Request failed! ${reason}`);
-        },
-      );
-    });
+          return result.json().then(
+            (newPackages) => {
+              console.log('new packages: ', newPackages);
+              return this.HandleNewPackages(newPackages);
+            },
+            (reason) => {
+              console.error('JSON parse error: ', reason);
+              throw new Error(`Request failed! ${reason}`);
+            },
+          );
+        });
+      },
+      (reason: string) => {
+        console.log(`Unable to generate token: ${reason}`);
+        return this.HandleNewPackages([]);
+      },
+    );
+  }
+
+  private HandleNewPackages(newPackages: StorePackage[]) {
+    const changed = !ArraysIntersect(newPackages, this.currentPackages);
+
+    if (changed) {
+      this.currentPackages = newPackages;
+      console.log('Packages Status!', this.currentPackages);
+      this.emit('updated', this.currentPackages);
+
+      this.Rerender();
+    }
+
+    return changed;
   }
 
   public constructor(
@@ -74,6 +98,8 @@ export class StorePackagesServiceBase extends EventEmitter<
     renderListService: RenderListServiceBase,
     @inject(CheckoutToken)
     checkoutService: CheckoutServiceBase,
+    @inject(AccountToken)
+    private readonly accountService: AccountServiceBase,
   ) {
     super();
     this.listView = renderListService.CreateRenderer<StorePackage>((pack) => {
