@@ -18,10 +18,11 @@
       "index": {
         "open_dev_tools": true,
         "file": "windows/index/page.html",
-        "native_window": true,
         "desktop_only": true,
         "dev_tools_window_style": false,
-        "resizable": true
+        "resizable": true,
+        "width": 750,
+        "height": 500
       }
     },
     "force_browser": "user",
@@ -31,14 +32,10 @@
       "filter": "*.*"
     },
     "url_protocol": {
-      "schemes": [
-        "tebex-subs-sample-purchased"
-      ]
+      "schemes": ["tebex-subs-sample-purchased"]
     },
     "externally_connectable": {
-      "matches": [
-      "https://*.tebex.io"
-      ]
+      "matches": ["https://*.tebex.io"]
     }
   }
 }
