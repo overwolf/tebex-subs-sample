@@ -108,6 +108,7 @@ export class IndexController {
         currentlyLoggedIn.textContent = newUsername || 'False';
       getStatus?.toggleAttribute('disabled', !newUsername);
       this.subscriptionStatus.RefreshStatus();
+      this.storePackages.RefreshPackages();
     });
 
     this.account.init();
