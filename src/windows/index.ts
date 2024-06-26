@@ -26,6 +26,7 @@ import {
   RenderListToken,
 } from '../base/services/render-list-service';
 import { SemVer } from 'semver';
+import { RenderCategoryToken } from '../base/services/render-category-service';
 
 container.registerSingleton(CheckoutToken, CheckoutServiceBase);
 container.registerSingleton(StorePackagesToken, StorePackagesServiceBase);
@@ -34,6 +35,7 @@ container.registerSingleton(
   SubscriptionStatusServiceBase,
 );
 container.register(RenderListToken, RenderListServiceBase);
+container.registerSingleton(RenderCategoryToken, RenderListServiceBase);
 container.registerSingleton(DeeplinkToken, DeeplinkServiceBase);
 container.registerSingleton(AccountToken, AccountServiceBase);
 
@@ -72,7 +74,10 @@ export class IndexController {
    */
   private async init(): Promise<void> {
     // Setup Packages list
-    await this.storePackages.RefreshPackages();
+    // await this.storePackages.RefreshPackages();
+
+    // Setup Categories list
+    await this.storePackages.RefreshCategories();
 
     // Setup success deeplink handling
     this.deeplink.on('success', () => {
@@ -90,7 +95,8 @@ export class IndexController {
 
     const getPackages = document.getElementById('getPackages');
     if (getPackages) {
-      getPackages.onclick = async () => this.storePackages.RefreshPackages();
+      // getPackages.onclick = async () => this.storePackages.RefreshPackages();
+      getPackages.onclick = async () => this.storePackages.RefreshCategories();
 
       getPackages.toggleAttribute('disabled', false);
     }
@@ -109,6 +115,7 @@ export class IndexController {
       getStatus?.toggleAttribute('disabled', !newUsername);
       this.subscriptionStatus.RefreshStatus();
       this.storePackages.RefreshPackages();
+      this.storePackages.RefreshCategories();
     });
 
     this.account.init();
