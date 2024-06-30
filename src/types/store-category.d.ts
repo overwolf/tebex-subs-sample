@@ -6,7 +6,7 @@ export type StoreCategory = {
 };
 
 export type ActiveTier = {
-  tierId: number;
+  tier_id: number;
   package: NewStorePackage;
   active: boolean;
   created_at: string;
