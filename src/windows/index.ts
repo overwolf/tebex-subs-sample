@@ -89,7 +89,6 @@ export class IndexController {
 
     const getPackages = document.getElementById('getPackages');
     if (getPackages) {
-      // getPackages.onclick = async () => this.storePackages.RefreshPackages();
       getPackages.onclick = async () => this.storePackages.RefreshCategories();
 
       getPackages.toggleAttribute('disabled', false);
@@ -118,6 +117,7 @@ export class IndexController {
 
     await this.storePackages.RefreshCategories();
 
+    // Refresh subscription status based on updated categories
     this.storePackages.on('updatedCategory', (categories) => {
       if (categories) {
         this.subscriptionStatus.RefreshStatus();

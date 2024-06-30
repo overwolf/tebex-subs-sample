@@ -23,7 +23,6 @@ export type StorePackagesEvents = {
 @injectable()
 // eslint-disable-next-line prettier/prettier
 export class StorePackagesServiceBase extends EventEmitter<StorePackagesEvents> {
-  // private readonly listView;
   private readonly categoryView;
   private currentPackages: StorePackage[] = [];
   private currentCategories: StoreCategory[] = [];
@@ -236,42 +235,9 @@ export class StorePackagesServiceBase extends EventEmitter<StorePackagesEvents> 
       },
       document.getElementById('categories-container'),
     );
-
-    //
-    // this.listView = renderListService.CreateRenderer<StorePackage>((pack) => {
-    //   console.log('pack: ', pack);
-
-    //   const container = document.createElement('li');
-    //   container.classList.add('vertical', 'item');
-
-    //   container.appendChild(renderListService.CreateText(pack.name));
-    //   // container.appendChild(
-    //   //   renderListService.CreateText(pack.total_price.toString()),
-    //   // );
-
-    //   const select = document.createElement('button');
-    //   select.textContent = 'checkout';
-    //   // select.addEventListener('click', () => {
-    //   //   const discordId = document.getElementById(
-    //   //     'discordId',
-    //   //   ) as unknown as HTMLInputElement;
-    //   //   checkoutService.RequestCheckout({
-    //   //     packageId: pack.id,
-    //   //     extra: {
-    //   //       discordId: discordId.value ?? '',
-    //   //     },
-    //   //   });
-    //   // });
-    //   container.appendChild(select);
-
-    //   console.log('container: ', container);
-
-    //   return container;
-    // }, document.getElementById('category-title'));
   }
 
   public Rerender = () => {
     this.categoryView.RefreshList(this.currentCategories);
-    // this.listView.RefreshList(this.currentPackages);
   };
 }

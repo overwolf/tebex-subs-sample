@@ -109,7 +109,6 @@ export class SubscriptionStatusServiceBase extends EventEmitter<SubscriptionsSta
   public Rerender = () =>
     this.listView.RefreshList(
       this.currentStatus,
-      // this.storePackagesService.GetCurrentPackages(),
       this.storePackagesService
         .GetCurrentCategories()
         .flatMap((category) => category.packages),
