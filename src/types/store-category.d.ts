@@ -1,13 +1,22 @@
 export type StoreCategory = {
   name: string;
   description: string;
-  activeTier?: ActiveTier;
+  active_tier?: ActiveTier;
   packages: NewStorePackage[];
 };
 
 export type ActiveTier = {
   tierId: number;
-  package: StorePackage;
+  package: NewStorePackage;
+  active: boolean;
+  created_at: string;
+  next_payment_date: string;
+  status: TierStatus;
+};
+
+export type TierStatus = {
+  id: string;
+  description: string;
 };
 
 export type NewStorePackage = {
@@ -27,4 +36,5 @@ export type NewStorePackage = {
   type: 'subscription' | 'single';
   updated_at: string;
   prorate_price?: number;
+  currency: string;
 };
