@@ -17,3 +17,7 @@
   padding: 0 15px;
   flex: 1 1 0px;
 }
+
+hr {
+  width: 90vw;
+}
