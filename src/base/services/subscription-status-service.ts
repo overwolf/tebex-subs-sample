@@ -2,7 +2,6 @@ import { inject, injectable } from 'tsyringe';
 import endpoints from '../config/endpoints';
 import { RenderListServiceBase, RenderListToken } from './render-list-service';
 import {
-  StorePackage,
   StorePackagesServiceBase,
   StorePackagesToken,
 } from './store-packages-service';
@@ -10,6 +9,7 @@ import { EventEmitter } from 'events';
 import ArraysIntersect from '../../utils/arrays-intersect';
 import OverwolfCheckoutRequest from '../../utils/overwolf-checkout-request';
 import { AccountServiceBase, AccountToken } from './account-service';
+import { StorePackage } from '../../types/store-package';
 
 export type SubscriptionStatus = {
   userId: string;
@@ -25,9 +25,7 @@ export type SubscriptionsStatusEvents = {
 
 @injectable()
 // eslint-disable-next-line prettier/prettier
-export class SubscriptionStatusServiceBase extends EventEmitter<
-  SubscriptionsStatusEvents
-> {
+export class SubscriptionStatusServiceBase extends EventEmitter<SubscriptionsStatusEvents> {
   private readonly listView;
   private currentStatus: SubscriptionStatus[] = [];
 
@@ -111,6 +109,9 @@ export class SubscriptionStatusServiceBase extends EventEmitter<
   public Rerender = () =>
     this.listView.RefreshList(
       this.currentStatus,
-      this.storePackagesService.GetCurrentPackages(),
+      // this.storePackagesService.GetCurrentPackages(),
+      this.storePackagesService
+        .GetCurrentCategories()
+        .flatMap((category) => category.packages),
     );
 }
