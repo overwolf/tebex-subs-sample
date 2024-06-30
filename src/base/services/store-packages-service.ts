@@ -165,6 +165,14 @@ export class StorePackagesServiceBase extends EventEmitter<StorePackagesEvents> 
 
         container.appendChild(categoryTitle);
 
+        if (category.active_tier) {
+          const activeTierPending = renderCategoryService.CreateText(
+            `Active tier pending: ${category.active_tier?.status.description}` ??
+              'Unknown status',
+          );
+          container.appendChild(activeTierPending);
+        }
+
         const categoryList = document.createElement('ul');
         categoryList.classList.add('horizontal', 'category-list');
 
