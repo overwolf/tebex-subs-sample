@@ -73,12 +73,6 @@ export class IndexController {
    * Initializes this app
    */
   private async init(): Promise<void> {
-    // Setup Packages list
-    // await this.storePackages.RefreshPackages();
-
-    // Setup Categories list
-    await this.storePackages.RefreshCategories();
-
     // Setup success deeplink handling
     this.deeplink.on('success', () => {
       console.log('Deeplink received for subscription flow success!');
@@ -121,6 +115,14 @@ export class IndexController {
     this.account.init();
 
     this.checkout.init(this.subscriptionStatus);
+
+    await this.storePackages.RefreshCategories();
+
+    this.storePackages.on('updatedCategory', (categories) => {
+      if (categories) {
+        this.subscriptionStatus.RefreshStatus();
+      }
+    });
   }
 
   private readonly _retryDelay = 30000;
