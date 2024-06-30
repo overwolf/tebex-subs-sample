@@ -27,6 +27,10 @@ import {
 } from '../base/services/render-list-service';
 import { SemVer } from 'semver';
 import { RenderCategoryToken } from '../base/services/render-category-service';
+import {
+  UpdateTierToken,
+  UpdateTierServiceBase,
+} from '../base/services/update-tier-service';
 
 container.registerSingleton(CheckoutToken, CheckoutServiceBase);
 container.registerSingleton(StorePackagesToken, StorePackagesServiceBase);
@@ -38,6 +42,7 @@ container.register(RenderListToken, RenderListServiceBase);
 container.registerSingleton(RenderCategoryToken, RenderListServiceBase);
 container.registerSingleton(DeeplinkToken, DeeplinkServiceBase);
 container.registerSingleton(AccountToken, AccountServiceBase);
+container.registerSingleton(UpdateTierToken, UpdateTierServiceBase);
 
 // -----------------------------------------------------------------------------
 @injectable()
@@ -97,6 +102,12 @@ export class IndexController {
     const getStatus = document.getElementById('getStatus');
     if (getStatus) {
       getStatus.onclick = async () => this.subscriptionStatus.RefreshStatus();
+
+      this.subscriptionStatus.on('updated', (newStatus) => {
+        if (newStatus) {
+          this.storePackages.Rerender();
+        }
+      });
     }
 
     const currentlyLoggedIn = document.getElementById('loggedIn');
