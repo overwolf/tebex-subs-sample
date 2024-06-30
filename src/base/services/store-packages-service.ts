@@ -10,45 +10,8 @@ import {
   RenderCategoryServiceBase,
   RenderCategoryToken,
 } from './render-category-service';
-
-export type StorePackage = {
-  base_price: number;
-  category: { id: number; name: string };
-  created_at: string;
-  description: string;
-  disable_gifting: boolean;
-  disable_quantity: boolean;
-  discount: number;
-  expiration_date?: string;
-  id: number;
-  image?: string;
-  name: string;
-  sales_tax: number;
-  total_price: number;
-  type: 'subscription' | 'single';
-  updated_at: string;
-};
-
-export type StoreCategory = {
-  name: string;
-  description: string;
-  activeTier?: ActiveTier;
-  packages: StorePackage[];
-};
-
-export type ActiveTier = {
-  tierId: number;
-  package: StorePackage;
-};
-
-export type NewStorePackage = {
-  packageId: number;
-  name: string;
-  description: string;
-  totalPrice: number;
-  discount: number;
-  currency: string;
-};
+import { StorePackage } from '../../types/store-package';
+import { StoreCategory } from '../../types/store-category';
 
 export const StorePackagesToken = 'StorePackagesBase';
 
@@ -212,8 +175,32 @@ export class StorePackagesServiceBase extends EventEmitter<StorePackagesEvents> 
           categoryItem.appendChild(renderCategoryService.CreateText(pack.name));
 
           categoryItem.appendChild(
-            renderCategoryService.CreateText(pack.total_price.toString()),
+            renderCategoryService.CreateText(
+              'Price: ' + pack.total_price.toString() + ` ${pack.currency}`,
+            ),
           );
+
+          if (category.active_tier?.package.id === pack.id) {
+            categoryItem.appendChild(
+              renderCategoryService.CreateText(
+                `Active tier: ${category.active_tier?.active ?? 'false'}`,
+              ),
+            );
+          }
+
+          if (
+            category.active_tier &&
+            category.active_tier.package.id != pack.id
+          ) {
+            categoryItem.appendChild(
+              renderCategoryService.CreateText(
+                `Price to change: ${
+                  pack.prorate_price?.toString() + ` ${pack.currency}` ??
+                  'Unknown delta price'
+                }`,
+              ),
+            );
+          }
 
           const select = document.createElement('button');
           select.textContent = 'checkout';
@@ -242,6 +229,7 @@ export class StorePackagesServiceBase extends EventEmitter<StorePackagesEvents> 
       document.getElementById('categories-container'),
     );
 
+    //
     // this.listView = renderListService.CreateRenderer<StorePackage>((pack) => {
     //   console.log('pack: ', pack);
 
