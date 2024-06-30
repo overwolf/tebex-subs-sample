@@ -28,8 +28,11 @@ export class CheckoutServiceBase {
     if (!this.accountService.GetCurrentUser())
       overwolf.profile.openLoginDialog();
     else {
-      if (this.ValidatecheckoutRequest(packageParams))
+      if (this.ValidatecheckoutRequest(packageParams)) {
         this.Checkout(packageParams);
+      } else {
+        console.error('Cannot purchase the same package twice!');
+      }
     }
   }
 
