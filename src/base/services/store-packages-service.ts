@@ -12,6 +12,7 @@ import {
 } from './render-category-service';
 import { StorePackage } from '../../types/store-package';
 import { StoreCategory } from '../../types/store-category';
+import { UpdateTierServiceBase, UpdateTierToken } from './update-tier-service';
 
 export const StorePackagesToken = 'StorePackagesBase';
 
@@ -147,6 +148,8 @@ export class StorePackagesServiceBase extends EventEmitter<StorePackagesEvents> 
     renderListService: RenderListServiceBase,
     @inject(CheckoutToken)
     checkoutService: CheckoutServiceBase,
+    @inject(UpdateTierToken)
+    updateTierService: UpdateTierServiceBase,
     @inject(AccountToken)
     private readonly accountService: AccountServiceBase,
     @inject(RenderCategoryToken)
@@ -207,22 +210,44 @@ export class StorePackagesServiceBase extends EventEmitter<StorePackagesEvents> 
                 }`,
               ),
             );
+
+            // Add a button to update the tier for the package your are not currently subscribed to
+            const update = document.createElement('button');
+            pack.prorate_price === 0
+              ? (update.textContent = 'Downgrade')
+              : (update.textContent = 'Upgrade');
+            update.addEventListener('click', () => {
+              const discordId = document.getElementById(
+                'discordId',
+              ) as unknown as HTMLInputElement;
+              updateTierService.RequestUpdateTier({
+                tier_id: category.active_tier?.tier_id ?? 0,
+                packageId: pack.id,
+                type: pack.prorate_price === 0 ? 'downgrade' : 'upgrade',
+                extra: {
+                  discordId: discordId.value ?? '',
+                },
+              });
+            });
+            categoryItem.appendChild(update);
           }
 
-          const select = document.createElement('button');
-          select.textContent = 'checkout';
-          select.addEventListener('click', () => {
-            const discordId = document.getElementById(
-              'discordId',
-            ) as unknown as HTMLInputElement;
-            checkoutService.RequestCheckout({
-              packageId: pack.id,
-              extra: {
-                discordId: discordId.value ?? '',
-              },
+          if (!category.active_tier) {
+            const select = document.createElement('button');
+            select.textContent = 'checkout';
+            select.addEventListener('click', () => {
+              const discordId = document.getElementById(
+                'discordId',
+              ) as unknown as HTMLInputElement;
+              checkoutService.RequestCheckout({
+                packageId: pack.id,
+                extra: {
+                  discordId: discordId.value ?? '',
+                },
+              });
             });
-          });
-          categoryItem.appendChild(select);
+            categoryItem.appendChild(select);
+          }
 
           categoryList.appendChild(categoryItem);
 
